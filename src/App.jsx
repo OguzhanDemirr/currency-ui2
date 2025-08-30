@@ -3,8 +3,31 @@ import "./index.css";
 
 const API = import.meta.env.VITE_API_BASE;
 
+// En çok kullanılan 10 + TRY
+const POPULAR_CODES = [
+  "EUR", "JPY", "GBP", "AUD", "CAD",
+  "CHF", "CNY", "HKD", "INR", "KRW",
+  "TRY"
+];
+
+// Sembol + tam ad eşlemesi
+const CURRENCY_META = {
+  USD: { symbol: "$",  name: "Amerikan Doları" },
+  EUR: { symbol: "€",  name: "Euro" },
+  JPY: { symbol: "¥",  name: "Japon Yeni" },
+  GBP: { symbol: "£",  name: "İngiliz Sterlini" },
+  AUD: { symbol: "$",  name: "Avustralya Doları" },
+  CAD: { symbol: "$",  name: "Kanada Doları" },
+  CHF: { symbol: "CHF",name: "İsviçre Frangı" },
+  CNY: { symbol: "¥",  name: "Çin Yuanı" },
+  HKD: { symbol: "$",  name: "Hong Kong Doları" },
+  INR: { symbol: "₹",  name: "Hindistan Rupisi" },
+  KRW: { symbol: "₩",  name: "Güney Kore Wonu" },
+  TRY: { symbol: "₺",  name: "Türk Lirası" }
+};
+
 export default function App() {
-  const [latest, setLatest] = useState(null);
+  const [latestUSD, setLatestUSD] = useState(null); // 1 USD bazlı latest
   const [base, setBase] = useState("USD");
   const [target, setTarget] = useState("TRY");
   const [amount, setAmount] = useState(100);
@@ -12,19 +35,20 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
 
-  // sayfa açılır/BASE değişince son kurları çek
+  // --- LATEST: 1 USD bazlı veriyi çek ---
   useEffect(() => {
     setError("");
-    setLatest(null);
-    fetch(`${API}/api/currency/latest/${base}`)
+    setLatestUSD(null);
+    fetch(`${API}/api/currency/latest/USD`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then(setLatest)
+      .then(setLatestUSD)
       .catch((e) => setError(e.message));
-  }, [base]);
+  }, []); // sadece ilk açılışta
 
+  // --- CONVERT ---
   const handleConvert = async () => {
     setError("");
     try {
@@ -38,6 +62,7 @@ export default function App() {
     }
   };
 
+  // --- HISTORY ---
   const handleHistory = async () => {
     setError("");
     try {
@@ -50,6 +75,18 @@ export default function App() {
       setError(String(e));
     }
   };
+
+  // POPULAR + TRY filtrelenmiş latest satırları
+  const latestRows = latestUSD?.rates
+    ? POPULAR_CODES
+        .filter((code) => latestUSD.rates[code] != null)
+        .map((code) => ({
+          code,
+          rate: latestUSD.rates[code],
+          symbol: CURRENCY_META[code]?.symbol ?? "",
+          name: CURRENCY_META[code]?.name ?? code
+        }))
+    : [];
 
   return (
     <div className="page">
@@ -140,21 +177,28 @@ export default function App() {
           </>
         )}
 
-        {/* LATEST RATES TABLE */}
-        <h3>Latest ({base})</h3>
-        {!latest && !error && <div className="pre">Loading...</div>}
-        {latest?.rates && (
+        {/* LATEST (1 USD bazlı) */}
+        <h3>Latest (1 USD bazlı)</h3>
+        <div className="info">
+          Aşağıda en çok kullanılan 10 para birimi ile Türk Lirası için,
+          <strong> 1&nbsp;ABD Doları’nın karşılık geldiği değerler</strong> listelenmiştir.
+        </div>
+
+        {!latestUSD && !error && <div className="pre">Loading...</div>}
+        {latestRows.length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>Currency</th>
-                <th>Rate</th>
+                <th>Para Birimi</th>
+                <th>Değer (1 USD)</th>
               </tr>
             </thead>
             <tbody>
-              {Object.entries(latest.rates).map(([code, rate]) => (
+              {latestRows.map(({ code, rate, symbol, name }) => (
                 <tr key={code}>
-                  <td>{code}</td>
+                  <td>
+                    {symbol} {code} — {name}
+                  </td>
                   <td>{rate}</td>
                 </tr>
               ))}
