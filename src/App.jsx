@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import "./index.css";
 
 const API = import.meta.env.VITE_API_BASE;
-const PHOTO_URL = import.meta.env.VITE_PHOTO_URL || "/photo.jpg"; // public/photo.jpg
 
 // En çok kullanılan 10 + TRY
 const POPULAR_CODES = [
@@ -38,11 +37,13 @@ export default function App() {
   const [base, setBase] = useState("USD");
   const [target, setTarget] = useState("TRY");
   const [amount, setAmount] = useState("100"); // string tut
+  const [lastAmount, setLastAmount] = useState(null); // convert anındaki miktar
+  // mevcut statelerin yanına ekle
+  const [convertSnap, setConvertSnap] = useState(null);
+
   const [convertResp, setConvertResp] = useState(null);
-  const [convertSnap, setConvertSnap] = useState(null); // Convert snapshot
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
-  const [showPhoto, setShowPhoto] = useState(false);   // Foto overlay
 
   // LATEST (1 USD bazlı)
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, []);
 
-  // amount giriş kontrolü
+  // amount giriş kontrolü: sadece rakam, nokta, virgül; boş da olabilir
   const handleAmountChange = (e) => {
     const v = e.target.value;
     if (v === "" || /^[0-9.,]+$/.test(v)) {
@@ -75,7 +76,13 @@ export default function App() {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       setConvertResp(data);
-      setConvertSnap({ base, target, amount, converted: data.converted });
+      setConvertSnap({
+        base,
+        target,
+        amount,                  // string olarak saklıyoruz
+        converted: data.converted
+      });
+      //setLastAmount(amount); // tablo sabit kalsın
     } catch (e) {
       setError(String(e));
     }
@@ -94,6 +101,7 @@ export default function App() {
     }
   };
 
+  // POPULAR + TRY filtrelenmiş latest satırları
   const latestRows = latestUSD?.rates
     ? POPULAR_CODES
         .filter((code) => latestUSD.rates[code] != null)
@@ -107,32 +115,8 @@ export default function App() {
 
   return (
     <div className="page">
-      {/* Fotoğraf overlay */}
-      {showPhoto && (
-        <div className="photo-overlay" onClick={() => setShowPhoto(false)}>
-          <img
-            className="photo-img"
-            src={PHOTO_URL}
-            alt="Yüklenen fotoğraf"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button className="photo-close" onClick={() => setShowPhoto(false)}>
-            ×
-          </button>
-        </div>
-      )}
-
       <div className="card">
-        {/* Başlık + sağda buton */}
-        <div className="topbar">
-          <h1>Currency</h1>
-          <button
-            className="photo-btn"
-            onClick={() => setShowPhoto(true)}
-          >
-            Fotoğraf
-          </button>
-        </div>
+        <h1>Currency</h1>
 
         <div className="row">
           <input
@@ -146,8 +130,8 @@ export default function App() {
             placeholder="Target (TRY)"
           />
           <input
-            type="text"
-            inputMode="decimal"
+            type="text"            // number yerine text
+            inputMode="decimal"    // mobil klavye
             value={amount}
             onChange={handleAmountChange}
             placeholder="Amount"
@@ -157,37 +141,38 @@ export default function App() {
 
         {error && <div className="error">Hata: {error}</div>}
 
-        {/* Dönüşüm Sonucu */}
+        {/* CONVERT RESULT TABLE (amount sabit, converted 2 basamak) */}
         {convertSnap && (
-          <>
-            <h3>Dönüşüm Sonucu</h3>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Base</th>
-                  <th>Target</th>
-                  <th>Amount</th>
-                  <th>Converted</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{convertSnap.base}</td>
-                  <td>{convertSnap.target}</td>
-                  <td>{convertSnap.amount}</td>
-                  <td>{fmt2(convertSnap.converted)}</td>
-                </tr>
-              </tbody>
-            </table>
-            <hr />
-          </>
-        )}
+            <>
+              <h3>Dönüşüm Sonucu</h3>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Base</th>
+                    <th>Target</th>
+                    <th>Amount</th>
+                    <th>Converted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{convertSnap.base}</td>
+                    <td>{convertSnap.target}</td>
+                    <td>{convertSnap.amount}</td>
+                    <td>{fmt2(convertSnap.converted)}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <hr />
+            </>
+          )}
+
 
         <div className="row">
           <button onClick={handleHistory}>Load History</button>
         </div>
 
-        {/* History */}
+        {/* HISTORY TABLE (converted 2 basamak) */}
         {history?.length > 0 && (
           <>
             <h3>Son Kayıtlar</h3>
@@ -219,7 +204,7 @@ export default function App() {
           </>
         )}
 
-        {/* Latest */}
+        {/* LATEST (1 USD bazlı) */}
         <h3>Latest (1 USD bazlı)</h3>
         <div className="info">
           Aşağıda en çok kullanılan 10 para birimi ile Türk Lirası için,
