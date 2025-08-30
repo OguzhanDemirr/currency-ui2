@@ -91,7 +91,7 @@ export default function App() {
   return (
     <div className="page">
       <div className="card">
-        <h1>Currency UI</h1>
+        <h1>Currency Converter</h1>
 
         <div className="row">
           <input
