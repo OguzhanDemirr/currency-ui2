@@ -83,3 +83,52 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 16px 0; }
 .table tr:nth-child(even) {
   background: #1a1a1a;
 }
+
+/* Sağ üstte yüzen buton */
+.photo-btn {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 40;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  background: #1f1f1f;
+  color: #eee;
+  cursor: pointer;
+}
+.photo-btn:hover { background: #272727; }
+
+/* Tam ekran overlay */
+.photo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+/* Görsel */
+.photo-img {
+  max-width: 90vw;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+/* Kapat butonu */
+.photo-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  font-size: 28px;
+  line-height: 1;
+  background: transparent;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.photo-close:hover { opacity: 0.9; }
+
