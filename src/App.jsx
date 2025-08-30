@@ -10,7 +10,6 @@ const POPULAR_CODES = [
   "TRY"
 ];
 
-// Sembol + tam ad eşlemesi
 const CURRENCY_META = {
   USD: { symbol: "$",  name: "Amerikan Doları" },
   EUR: { symbol: "€",  name: "Euro" },
@@ -26,16 +25,25 @@ const CURRENCY_META = {
   TRY: { symbol: "₺",  name: "Türk Lirası" }
 };
 
+// 2 basamak format helper
+const fmt2 = (x) =>
+  x === null || x === undefined || x === "" || Number.isNaN(Number(x))
+    ? ""
+    : Number(x).toFixed(2);
+
 export default function App() {
   const [latestUSD, setLatestUSD] = useState(null); // 1 USD bazlı latest
   const [base, setBase] = useState("USD");
   const [target, setTarget] = useState("TRY");
-  const [amount, setAmount] = useState(100);
+
+  // amount'u STRING tuttuk: boş bırakılabilir, başa 0 eklenmez
+  const [amount, setAmount] = useState("100");
+
   const [convertResp, setConvertResp] = useState(null);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
 
-  // --- LATEST: 1 USD bazlı veriyi çek ---
+  // LATEST (1 USD)
   useEffect(() => {
     setError("");
     setLatestUSD(null);
@@ -46,23 +54,33 @@ export default function App() {
       })
       .then(setLatestUSD)
       .catch((e) => setError(e.message));
-  }, []); // sadece ilk açılışta
+  }, []);
 
-  // --- CONVERT ---
+  // Amount giriş kontrolü: sadece rakam, nokta, virgül; boş da olabilir
+  const handleAmountChange = (e) => {
+    const v = e.target.value;
+    if (v === "" || /^[0-9.,]+$/.test(v)) {
+      setAmount(v);
+    }
+  };
+
   const handleConvert = async () => {
     setError("");
     try {
+      // virgülü noktaya çevir, sayı yap; boşsa 0 kabul et
+      const amountNum = parseFloat((amount || "0").replace(",", "."));
       const r = await fetch(
-        `${API}/api/currency/convert?base=${base}&target=${target}&amount=${amount}`
+        `${API}/api/currency/convert?base=${base}&target=${target}&amount=${amountNum}`
       );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setConvertResp(await r.json());
+      const data = await r.json();
+      // converted'i 2 basamak göstereceğiz (render'da fmt2 ile)
+      setConvertResp(data);
     } catch (e) {
       setError(String(e));
     }
   };
 
-  // --- HISTORY ---
   const handleHistory = async () => {
     setError("");
     try {
@@ -76,7 +94,6 @@ export default function App() {
     }
   };
 
-  // POPULAR + TRY filtrelenmiş latest satırları
   const latestRows = latestUSD?.rates
     ? POPULAR_CODES
         .filter((code) => latestUSD.rates[code] != null)
@@ -91,7 +108,7 @@ export default function App() {
   return (
     <div className="page">
       <div className="card">
-        <h1>Para Birimi Dönüştürücü</h1>
+        <h1>Currency</h1>
 
         <div className="row">
           <input
@@ -105,17 +122,18 @@ export default function App() {
             placeholder="Target (TRY)"
           />
           <input
-            type="number"
+            type="text"            // <-- number yerine text
+            inputMode="decimal"    // mobil klavye için
             value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
-            placeholder="Miktar"
+            onChange={handleAmountChange}
+            placeholder="Amount"
           />
           <button onClick={handleConvert}>Convert</button>
         </div>
 
         {error && <div className="error">Hata: {error}</div>}
 
-        {/* CONVERT RESULT TABLE */}
+        {/* CONVERT RESULT TABLE (converted 2 basamak) */}
         {convertResp && (
           <>
             <h3>Dönüşüm Sonucu</h3>
@@ -132,8 +150,8 @@ export default function App() {
                 <tr>
                   <td>{convertResp.base}</td>
                   <td>{convertResp.target}</td>
-                  <td>{convertResp.amount}</td>
-                  <td>{convertResp.converted}</td>
+                  <td>{amount}</td>
+                  <td>{fmt2(convertResp.converted)}</td>
                 </tr>
               </tbody>
             </table>
@@ -145,7 +163,7 @@ export default function App() {
           <button onClick={handleHistory}>Load History</button>
         </div>
 
-        {/* HISTORY TABLE */}
+        {/* HISTORY TABLE (converted 2 basamak) */}
         {history?.length > 0 && (
           <>
             <h3>Son Kayıtlar</h3>
@@ -167,7 +185,7 @@ export default function App() {
                     <td>{h.targetCode}</td>
                     <td>{h.rate}</td>
                     <td>{h.amount}</td>
-                    <td>{h.converted}</td>
+                    <td>{fmt2(h.converted)}</td>
                     <td>{h.createdAt}</td>
                   </tr>
                 ))}
