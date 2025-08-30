@@ -12,9 +12,10 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
 
-  // sayfa açılır açılmaz son kurları çek
+  // sayfa açılır/BASE değişince son kurları çek
   useEffect(() => {
     setError("");
+    setLatest(null);
     fetch(`${API}/api/currency/latest/${base}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -77,10 +78,28 @@ export default function App() {
 
         {error && <div className="error">Hata: {error}</div>}
 
+        {/* CONVERT RESULT TABLE */}
         {convertResp && (
           <>
             <h3>Dönüşüm Sonucu</h3>
-            <pre className="pre">{JSON.stringify(convertResp, null, 2)}</pre>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Base</th>
+                  <th>Target</th>
+                  <th>Amount</th>
+                  <th>Converted</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{convertResp.base}</td>
+                  <td>{convertResp.target}</td>
+                  <td>{convertResp.amount}</td>
+                  <td>{convertResp.converted}</td>
+                </tr>
+              </tbody>
+            </table>
             <hr />
           </>
         )}
@@ -89,6 +108,7 @@ export default function App() {
           <button onClick={handleHistory}>Load History</button>
         </div>
 
+        {/* HISTORY TABLE */}
         {history?.length > 0 && (
           <>
             <h3>Son Kayıtlar</h3>
@@ -120,10 +140,27 @@ export default function App() {
           </>
         )}
 
+        {/* LATEST RATES TABLE */}
         <h3>Latest ({base})</h3>
-        <pre className="pre">
-          {latest ? JSON.stringify(latest, null, 2) : "Loading..."}
-        </pre>
+        {!latest && !error && <div className="pre">Loading...</div>}
+        {latest?.rates && (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Currency</th>
+                <th>Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(latest.rates).map(([code, rate]) => (
+                <tr key={code}>
+                  <td>{code}</td>
+                  <td>{rate}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
