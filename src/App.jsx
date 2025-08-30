@@ -38,6 +38,8 @@ export default function App() {
   const [target, setTarget] = useState("TRY");
   const [amount, setAmount] = useState("100"); // string tut
   const [lastAmount, setLastAmount] = useState(null); // convert anındaki miktar
+  // mevcut statelerin yanına ekle
+  const [convertSnap, setConvertSnap] = useState(null);
 
   const [convertResp, setConvertResp] = useState(null);
   const [history, setHistory] = useState([]);
@@ -74,7 +76,13 @@ export default function App() {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       setConvertResp(data);
-      setLastAmount(amount); // tablo sabit kalsın
+      setConvertSnap({
+        base,
+        target,
+        amount,                  // string olarak saklıyoruz
+        converted: data.converted
+      });
+      //setLastAmount(amount); // tablo sabit kalsın
     } catch (e) {
       setError(String(e));
     }
@@ -134,30 +142,31 @@ export default function App() {
         {error && <div className="error">Hata: {error}</div>}
 
         {/* CONVERT RESULT TABLE (amount sabit, converted 2 basamak) */}
-        {convertResp && (
-          <>
-            <h3>Dönüşüm Sonucu</h3>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Base</th>
-                  <th>Target</th>
-                  <th>Amount</th>
-                  <th>Converted</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{convertResp.base}</td>
-                  <td>{convertResp.target}</td>
-                  <td>{lastAmount}</td>
-                  <td>{fmt2(convertResp.converted)}</td>
-                </tr>
-              </tbody>
-            </table>
-            <hr />
-          </>
-        )}
+        {convertSnap && (
+            <>
+              <h3>Dönüşüm Sonucu</h3>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Base</th>
+                    <th>Target</th>
+                    <th>Amount</th>
+                    <th>Converted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{convertSnap.base}</td>
+                    <td>{convertSnap.target}</td>
+                    <td>{convertSnap.amount}</td>
+                    <td>{fmt2(convertSnap.converted)}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <hr />
+            </>
+          )}
+
 
         <div className="row">
           <button onClick={handleHistory}>Load History</button>
