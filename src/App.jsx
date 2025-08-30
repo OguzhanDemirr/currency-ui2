@@ -10,6 +10,7 @@ const POPULAR_CODES = [
   "TRY"
 ];
 
+// Sembol + tam ad
 const CURRENCY_META = {
   USD: { symbol: "$",  name: "Amerikan Doları" },
   EUR: { symbol: "€",  name: "Euro" },
@@ -25,7 +26,7 @@ const CURRENCY_META = {
   TRY: { symbol: "₺",  name: "Türk Lirası" }
 };
 
-// 2 basamak format helper
+// 2 basamak formatter
 const fmt2 = (x) =>
   x === null || x === undefined || x === "" || Number.isNaN(Number(x))
     ? ""
@@ -35,15 +36,14 @@ export default function App() {
   const [latestUSD, setLatestUSD] = useState(null); // 1 USD bazlı latest
   const [base, setBase] = useState("USD");
   const [target, setTarget] = useState("TRY");
-
-  // amount'u STRING tuttuk: boş bırakılabilir, başa 0 eklenmez
-  const [amount, setAmount] = useState("100");
+  const [amount, setAmount] = useState("100"); // string tut
+  const [lastAmount, setLastAmount] = useState(null); // convert anındaki miktar
 
   const [convertResp, setConvertResp] = useState(null);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
 
-  // LATEST (1 USD)
+  // LATEST (1 USD bazlı)
   useEffect(() => {
     setError("");
     setLatestUSD(null);
@@ -56,7 +56,7 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, []);
 
-  // Amount giriş kontrolü: sadece rakam, nokta, virgül; boş da olabilir
+  // amount giriş kontrolü: sadece rakam, nokta, virgül; boş da olabilir
   const handleAmountChange = (e) => {
     const v = e.target.value;
     if (v === "" || /^[0-9.,]+$/.test(v)) {
@@ -67,15 +67,14 @@ export default function App() {
   const handleConvert = async () => {
     setError("");
     try {
-      // virgülü noktaya çevir, sayı yap; boşsa 0 kabul et
       const amountNum = parseFloat((amount || "0").replace(",", "."));
       const r = await fetch(
         `${API}/api/currency/convert?base=${base}&target=${target}&amount=${amountNum}`
       );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
-      // converted'i 2 basamak göstereceğiz (render'da fmt2 ile)
       setConvertResp(data);
+      setLastAmount(amount); // tablo sabit kalsın
     } catch (e) {
       setError(String(e));
     }
@@ -94,6 +93,7 @@ export default function App() {
     }
   };
 
+  // POPULAR + TRY filtrelenmiş latest satırları
   const latestRows = latestUSD?.rates
     ? POPULAR_CODES
         .filter((code) => latestUSD.rates[code] != null)
@@ -122,8 +122,8 @@ export default function App() {
             placeholder="Target (TRY)"
           />
           <input
-            type="text"            // <-- number yerine text
-            inputMode="decimal"    // mobil klavye için
+            type="text"            // number yerine text
+            inputMode="decimal"    // mobil klavye
             value={amount}
             onChange={handleAmountChange}
             placeholder="Amount"
@@ -133,7 +133,7 @@ export default function App() {
 
         {error && <div className="error">Hata: {error}</div>}
 
-        {/* CONVERT RESULT TABLE (converted 2 basamak) */}
+        {/* CONVERT RESULT TABLE (amount sabit, converted 2 basamak) */}
         {convertResp && (
           <>
             <h3>Dönüşüm Sonucu</h3>
@@ -150,7 +150,7 @@ export default function App() {
                 <tr>
                   <td>{convertResp.base}</td>
                   <td>{convertResp.target}</td>
-                  <td>{amount}</td>
+                  <td>{lastAmount}</td>
                   <td>{fmt2(convertResp.converted)}</td>
                 </tr>
               </tbody>
