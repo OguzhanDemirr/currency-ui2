@@ -122,17 +122,16 @@ export default function App() {
         </div>
       )}
 
-      <div className="card">
-        {/* Başlık + sağda buton */}
-        <div className="topbar">
-          <h1>Currency</h1>
-          <button
-            className="photo-btn"
-            onClick={() => setShowPhoto(true)}
-          >
-            Fotoğraf
-          </button>
-        </div>
+      <div className="topbar">
+        <h1>Currency</h1>
+        <button
+          className="photo-btn"
+          onClick={() => setShowPhoto(true)}
+        >
+          📷 Fotoğraf
+        </button>
+      </div>
+
 
         <div className="row">
           <input
