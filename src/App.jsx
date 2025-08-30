@@ -15,7 +15,7 @@ export default function App() {
   // sayfa açılır açılmaz son kurları çek
   useEffect(() => {
     setError("");
-    fetch(`${API}/api/currency/latest?base=${base}`)
+    fetch(`${API}/api/currency/latest/${base}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
