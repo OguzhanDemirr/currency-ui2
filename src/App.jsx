@@ -1,7 +1,7 @@
-console.log("API BASE =", API);
 import { useEffect, useState } from "react";
+import "./index.css";
 
-const API = import.meta.env.VITE_API_BASE; // .env'den gelir
+const API = import.meta.env.VITE_API_BASE;
 
 export default function App() {
   const [latest, setLatest] = useState(null);
@@ -10,66 +10,120 @@ export default function App() {
   const [amount, setAmount] = useState(100);
   const [convertResp, setConvertResp] = useState(null);
   const [history, setHistory] = useState([]);
+  const [error, setError] = useState("");
 
-  // Uygulama açılınca son kurları çek
+  // sayfa açılır açılmaz son kurları çek
   useEffect(() => {
+    setError("");
     fetch(`${API}/api/currency/latest?base=${base}`)
-      .then(r => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(setLatest)
-      .catch(console.error);
+      .catch((e) => setError(e.message));
   }, [base]);
 
   const handleConvert = async () => {
-    const res = await fetch(
-      `${API}/api/currency/convert?base=${base}&target=${target}&amount=${amount}`
-    );
-    const data = await res.json();
-    setConvertResp(data);
+    setError("");
+    try {
+      const r = await fetch(
+        `${API}/api/currency/convert?base=${base}&target=${target}&amount=${amount}`
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setConvertResp(await r.json());
+    } catch (e) {
+      setError(String(e));
+    }
   };
 
   const handleHistory = async () => {
-    const res = await fetch(
-      `${API}/api/currency/history?base=${base}&target=${target}`
-    );
-    const data = await res.json();
-    setHistory(data || []);
+    setError("");
+    try {
+      const r = await fetch(
+        `${API}/api/currency/history?base=${base}&target=${target}`
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setHistory((await r.json()) || []);
+    } catch (e) {
+      setError(String(e));
+    }
   };
 
   return (
-    <div style={{ fontFamily: "system-ui, Arial", padding: 24, maxWidth: 720 }}>
-      <h1>Currency UI</h1>
+    <div className="page">
+      <div className="card">
+        <h1>Currency UI</h1>
 
-      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr 1fr auto" }}>
-        <input value={base} onChange={e => setBase(e.target.value)} placeholder="Base (USD)" />
-        <input value={target} onChange={e => setTarget(e.target.value)} placeholder="Target (TRY)" />
-        <input
-          type="number"
-          value={amount}
-          onChange={e => setAmount(Number(e.target.value))}
-          placeholder="Amount"
-        />
-        <button onClick={handleConvert}>Convert</button>
-      </div>
-
-      {convertResp && (
-        <div style={{ marginTop: 12 }}>
-          <strong>Convert Result:</strong>
-          <pre>{JSON.stringify(convertResp, null, 2)}</pre>
+        <div className="row">
+          <input
+            value={base}
+            onChange={(e) => setBase(e.target.value.toUpperCase())}
+            placeholder="Base (USD)"
+          />
+          <input
+            value={target}
+            onChange={(e) => setTarget(e.target.value.toUpperCase())}
+            placeholder="Target (TRY)"
+          />
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            placeholder="Amount"
+          />
+          <button onClick={handleConvert}>Convert</button>
         </div>
-      )}
 
-      <div style={{ marginTop: 24 }}>
-        <button onClick={handleHistory}>Load History</button>
-        {history?.length > 0 && (
-          <pre style={{ marginTop: 12 }}>
-            {JSON.stringify(history, null, 2)}
-          </pre>
+        {error && <div className="error">Hata: {error}</div>}
+
+        {convertResp && (
+          <>
+            <h3>Dönüşüm Sonucu</h3>
+            <pre className="pre">{JSON.stringify(convertResp, null, 2)}</pre>
+            <hr />
+          </>
         )}
-      </div>
 
-      <div style={{ marginTop: 24 }}>
-        <strong>Latest ({base}):</strong>
-        <pre>{latest ? JSON.stringify(latest, null, 2) : "Loading..."}</pre>
+        <div className="row">
+          <button onClick={handleHistory}>Load History</button>
+        </div>
+
+        {history?.length > 0 && (
+          <>
+            <h3>Son Kayıtlar</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Base</th>
+                  <th>Target</th>
+                  <th>Rate</th>
+                  <th>Amount</th>
+                  <th>Converted</th>
+                  <th>Created At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((h, i) => (
+                  <tr key={i}>
+                    <td>{h.baseCode}</td>
+                    <td>{h.targetCode}</td>
+                    <td>{h.rate}</td>
+                    <td>{h.amount}</td>
+                    <td>{h.converted}</td>
+                    <td>{h.createdAt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <hr />
+          </>
+        )}
+
+        <h3>Latest ({base})</h3>
+        <pre className="pre">
+          {latest ? JSON.stringify(latest, null, 2) : "Loading..."}
+        </pre>
       </div>
     </div>
   );
