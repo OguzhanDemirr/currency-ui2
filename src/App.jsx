@@ -91,7 +91,7 @@ export default function App() {
   return (
     <div className="page">
       <div className="card">
-        <h1>Currency Converter</h1>
+        <h1>Para Birimi Dönüştürücü</h1>
 
         <div className="row">
           <input
@@ -108,7 +108,7 @@ export default function App() {
             type="number"
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
-            placeholder="Amount"
+            placeholder="Miktar"
           />
           <button onClick={handleConvert}>Convert</button>
         </div>
