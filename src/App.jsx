@@ -42,7 +42,7 @@ export default function App() {
   const [convertSnap, setConvertSnap] = useState(null); // Convert snapshot
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
-  const [showPhoto, setShowPhoto] = useState(false);   // FOTO overlay
+  const [showPhoto, setShowPhoto] = useState(false);   // Foto overlay
 
   // LATEST (1 USD bazlı)
   useEffect(() => {
@@ -107,16 +107,7 @@ export default function App() {
 
   return (
     <div className="page">
-      {/* Sağ üstte foto butonu */}
-      <button
-        className="photo-btn"
-        onClick={() => setShowPhoto(true)}
-        title="Fotoğrafı göster"
-      >
-        Fotoğraf
-      </button>
-
-      {/* Foto overlay */}
+      {/* Fotoğraf overlay */}
       {showPhoto && (
         <div className="photo-overlay" onClick={() => setShowPhoto(false)}>
           <img
@@ -132,7 +123,16 @@ export default function App() {
       )}
 
       <div className="card">
-        <h1>Currency</h1>
+        {/* Başlık + sağda buton */}
+        <div className="topbar">
+          <h1>Currency</h1>
+          <button
+            className="photo-btn"
+            onClick={() => setShowPhoto(true)}
+          >
+            Fotoğraf
+          </button>
+        </div>
 
         <div className="row">
           <input
@@ -157,7 +157,7 @@ export default function App() {
 
         {error && <div className="error">Hata: {error}</div>}
 
-        {/* DÖNÜŞÜM SONUCU (snapshot) */}
+        {/* Dönüşüm Sonucu */}
         {convertSnap && (
           <>
             <h3>Dönüşüm Sonucu</h3>
@@ -187,7 +187,7 @@ export default function App() {
           <button onClick={handleHistory}>Load History</button>
         </div>
 
-        {/* HISTORY */}
+        {/* History */}
         {history?.length > 0 && (
           <>
             <h3>Son Kayıtlar</h3>
@@ -219,7 +219,7 @@ export default function App() {
           </>
         )}
 
-        {/* LATEST (1 USD bazlı) */}
+        {/* Latest */}
         <h3>Latest (1 USD bazlı)</h3>
         <div className="info">
           Aşağıda en çok kullanılan 10 para birimi ile Türk Lirası için,
