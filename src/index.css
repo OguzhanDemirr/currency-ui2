@@ -85,3 +85,60 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 16px 0; }
 .table tr:nth-child(even) {
   background: #1a1a1a;
 }
+/* Üst sağdaki butonlar grubu */
+.top-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Grafik kartı */
+.chart-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #333;
+  border-radius: 10px;
+  background: #101010;
+}
+
+/* Grafik container */
+.chart-wrap {
+  width: 100%;
+  overflow-x: auto;     /* küçük ekranda yatay kaydırma */
+}
+
+/* SVG çizim */
+.chart-svg {
+  min-width: 600px;     /* mobilde kaydırılabilir olsun */
+  height: auto;
+}
+
+/* Eksen ve çizgiler */
+.axis {
+  stroke: #777;
+  stroke-width: 1;
+}
+.grid {
+  stroke: #333;
+  stroke-width: 1;
+}
+.tick {
+  font-size: 10px;
+  fill: #bbb;
+}
+
+/* Çizgi ve noktalar */
+.line {
+  stroke: #4ea1ff;      /* default renk—değiştirmek istersen burada */
+  stroke-width: 2;
+}
+.dot {
+  fill: #4ea1ff;
+}
+
+/* Tablo kapsayıcısı mobilde taşmasın */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
