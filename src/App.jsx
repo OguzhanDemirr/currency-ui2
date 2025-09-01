@@ -92,11 +92,11 @@ export default function App() {
     }
   };
 
-  const handleHistory = async () => {
+    const handleHistory = async () => {
     setError("");
     try {
       const r = await fetch(
-        `${API}/api/currency/history?base=${base}&target=${target}`
+        `${API}/api/currency/history?base=${base}&target=${target}&limit=10`
       );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setHistory((await r.json()) || []);
@@ -105,17 +105,15 @@ export default function App() {
     }
   };
 
+
   // Grafik butonuna basınca, history boşsa otomatik getir
-  const handleShowChart = async () => {
-    if (showChart) {
-      setShowChart(false);
-      return;
-    }
+    const handleShowChart = async () => {
+    if (showChart) { setShowChart(false); return; }
     if (!history || history.length === 0) {
       setChartLoading(true);
       try {
         const r = await fetch(
-          `${API}/api/currency/history?base=${base}&target=${target}`
+          `${API}/api/currency/history?base=${base}&target=${target}&days=30`
         );
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         setHistory((await r.json()) || []);
@@ -127,6 +125,7 @@ export default function App() {
     }
     setShowChart(true);
   };
+
 
   // POPULAR + TRY filtrelenmiş latest satırları
   const latestRows = latestUSD?.rates
