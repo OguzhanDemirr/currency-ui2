@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./index.css";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 
 const API = import.meta.env.VITE_API_BASE;
 const PHOTO_URL = import.meta.env.VITE_PHOTO_URL || "/photo.jpg"; // public/photo.jpg
@@ -47,13 +49,18 @@ export default function App() {
   const [amount, setAmount] = useState("100");      // string tut
   const [convertResp, setConvertResp] = useState(null);
   const [convertSnap, setConvertSnap] = useState(null); // Convert snapshot
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState([]);           // tablo (son 10)
   const [error, setError] = useState("");
-  const [showPhoto, setShowPhoto] = useState(false);   // Foto overlay
+  const [showPhoto, setShowPhoto] = useState(false);    // Foto overlay
 
   // Grafik görünürlüğü
   const [showChart, setShowChart] = useState(false);
   const [chartLoading, setChartLoading] = useState(false);
+  const [chartSeries, setChartSeries] = useState([]);   // grafik için 30 günlük seri
+
+  // WebSocket
+  const stompRef = useRef(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   // LATEST (1 USD bazlı)
   useEffect(() => {
@@ -67,6 +74,52 @@ export default function App() {
       .then(setLatestUSD)
       .catch((e) => setError(e.message));
   }, []);
+
+  // WebSocket bağlan/abonelik
+  useEffect(() => {
+    // Backend WebSocket endpointi: `${API}/ws`
+    const sock = new SockJS(`${API}/ws`);
+    const client = new Client({
+      webSocketFactory: () => sock,
+      reconnectDelay: 3000,
+      onConnect: () => {
+        setWsConnected(true);
+        // Server -> /topic/rates yayınını dinle
+        client.subscribe("/topic/rates", (msg) => {
+          try {
+            const payload = JSON.parse(msg.body);
+            // payload: { base, target, rate, amount, converted, createdAt }
+            if (
+              payload?.base?.toUpperCase() === base.toUpperCase() &&
+              payload?.target?.toUpperCase() === target.toUpperCase() &&
+              payload?.rate != null
+            ) {
+              // Grafiğe tek bir yeni nokta ekle (geçmişi değiştirme)
+              setChartSeries((prev) => {
+                const next = [
+                  ...prev,
+                  { t: new Date(payload.createdAt), v: Number(payload.rate) },
+                ];
+                // Zaman sırasına koy
+                next.sort((a, b) => a.t - b.t);
+                // Sadece son 30 günü tut
+                const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+                return next.filter((p) => p.t.getTime() >= cutoff);
+              });
+            }
+          } catch {
+            // ignore parse errors
+          }
+        });
+      },
+      onStompError: () => setWsConnected(false),
+      onWebSocketClose: () => setWsConnected(false),
+    });
+
+    client.activate();
+    stompRef.current = client;
+    return () => client.deactivate();
+  }, [API, base, target]);
 
   // amount giriş kontrolü
   const handleAmountChange = (e) => {
@@ -87,12 +140,14 @@ export default function App() {
       const data = await r.json();
       setConvertResp(data);
       setConvertSnap({ base, target, amount, converted: data.converted });
+      // Not: WS yayını backend'de yapılır; burada ekstra iş yok.
     } catch (e) {
       setError(String(e));
     }
   };
 
-    const handleHistory = async () => {
+  // Tablo: son 10 kayıt
+  const handleHistory = async () => {
     setError("");
     try {
       const r = await fetch(
@@ -105,27 +160,29 @@ export default function App() {
     }
   };
 
-
-  // Grafik butonuna basınca, history boşsa otomatik getir
-    const handleShowChart = async () => {
+  // Grafiği Göster: son 30 gün yükle (tablodan bağımsız)
+  const handleShowChart = async () => {
     if (showChart) { setShowChart(false); return; }
-    if (!history || history.length === 0) {
-      setChartLoading(true);
-      try {
-        const r = await fetch(
-          `${API}/api/currency/history?base=${base}&target=${target}&days=30`
-        );
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        setHistory((await r.json()) || []);
-      } catch (e) {
-        setError(String(e));
-      } finally {
-        setChartLoading(false);
-      }
+    setChartLoading(true);
+    try {
+      const r = await fetch(
+        `${API}/api/currency/history?base=${base}&target=${target}&days=30`
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const rows = (await r.json()) || [];
+      const series = rows
+        .filter((x) => x.rate != null && !Number.isNaN(Number(x.rate)))
+        .map((x) => ({ t: new Date(x.createdAt), v: Number(x.rate) }));
+      // sıralı tut
+      series.sort((a, b) => a.t - b.t);
+      setChartSeries(series);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setChartLoading(false);
+      setShowChart(true);
     }
-    setShowChart(true);
   };
-
 
   // POPULAR + TRY filtrelenmiş latest satırları
   const latestRows = latestUSD?.rates
@@ -139,20 +196,10 @@ export default function App() {
         }))
     : [];
 
-  // --- Chart verisi (rate vs time) ---
+  // Grafik verisini hesapla (chartSeries'ten)
   const chartData = useMemo(() => {
-    if (!history || history.length === 0) return [];
-    // createdAt artan sıraya
-    const sorted = [...history].sort(
-      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-    );
-    return sorted
-      .filter((x) => x.rate != null && !Number.isNaN(Number(x.rate)))
-      .map((x) => ({
-        t: new Date(x.createdAt),
-        v: Number(x.rate)
-      }));
-  }, [history]);
+    return chartSeries || [];
+  }, [chartSeries]);
 
   return (
     <div className="page">
@@ -176,6 +223,9 @@ export default function App() {
         <div className="topbar">
           <h1>Currency</h1>
           <div className="top-actions">
+            <span style={{opacity:.8, fontSize:12}}>
+              WebSocket: <b>{wsConnected ? "Bağlı" : "Bağlı değil"}</b>
+            </span>
             <button className="photo-btn" onClick={() => setShowPhoto(true)}>
               📷 Fotoğraf
             </button>
